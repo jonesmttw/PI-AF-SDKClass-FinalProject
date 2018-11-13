@@ -241,7 +241,7 @@
             this.btnExportData.Name = "btnExportData";
             this.btnExportData.Size = new System.Drawing.Size(106, 23);
             this.btnExportData.TabIndex = 19;
-            this.btnExportData.Text = "Export Data";
+            this.btnExportData.Text = "Export to Excel";
             this.btnExportData.UseVisualStyleBackColor = true;
             this.btnExportData.MouseClick += new System.Windows.Forms.MouseEventHandler(this.btnExportData_MouseClick);
             // 
