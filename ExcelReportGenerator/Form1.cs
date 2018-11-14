@@ -22,6 +22,7 @@ namespace ExcelReportGenerator
         {
             InitializeComponent();
 
+            // initialize form system pi picker
             dbPicker.SystemPicker = piSystemPicker1;
 
             // Initialize Date Pickers to a 7 day time window ending at today's date
@@ -55,11 +56,13 @@ namespace ExcelReportGenerator
         {
             AFElement afElement = afTreeView.AFSelection as AFElement;
 
+            // clear existing checkbox attribute items
             cbParentAttributes.Items.Clear();
             cbChilrenAttributes.Items.Clear();
 
             if (afElement != null)
             {
+                // parents are a single element so you can add attributes directly
                 cbParentAttributes.Items.AddRange(afElement.Attributes.Cast<AFAttribute>().ToArray());
                 if (afElement.HasChildren)
                 {
@@ -78,6 +81,7 @@ namespace ExcelReportGenerator
                         }
                     }
 
+                    // after getting the different attribute names - add these to the checkbox list
                     cbChilrenAttributes.Items.AddRange(attributeNames.ToArray());
                 }
             }
@@ -108,15 +112,19 @@ namespace ExcelReportGenerator
 
             AFElement element = afTreeView.AFSelection as AFElement;
 
+            // initialize dictionary to capture attribute name and the values for the attribute
             Dictionary<string, List<ReportCellValue>> values = new Dictionary<string, List<ReportCellValue>>();
 
+            // initialize excel work book using ClosedXml
             XLWorkbook wb = new XLWorkbook();
             IXLWorksheet ws = wb.Worksheets.Add("AF Export");
 
+            // export data from children or single element
             if (cbReportOnChildren.Checked)
             {
                 int elementcount = 0;
 
+                // loop through children elements
                 foreach (AFElement children in element.Elements)
                 {
                     // reset the values dictionary for the new child element and counter
@@ -125,8 +133,10 @@ namespace ExcelReportGenerator
 
                     foreach (AFAttribute attribute in children.Attributes)
                     {
+                        // if the attribute is checked and the attribute supports the recorded values data retrieval method, get the values
                         if (cbChilrenAttributes.CheckedItems.Contains(attribute.Name) && attribute.SupportedDataMethods.HasFlag(AFDataMethods.RecordedValues))
                         {
+                            // using Linq to do a Where AFValue is Good filter, convert these AFValues to ReportCellValue class for exporting to JSON or Excel
                             values[attribute.Name] = ConvertAFValuesToReportCellValues(attribute.Data.RecordedValues(timeRange, AFBoundaryType.Interpolated, null, null, true).Where(v => v.IsGood), attribute.Name);
                             tmpelementcount += values[attribute.Name].Count();
                         }
@@ -138,8 +148,10 @@ namespace ExcelReportGenerator
             }
             else
             {
+                // if the attribute is checked, get the values
                 foreach (AFAttribute attribute in cbParentAttributes.CheckedItems)
                 {
+                    // using Linq to do a Where AFValue is Good filter, convert these AFValues to ReportCellValue class for exporting to JSON or Excel
                     values[attribute.Name] = ConvertAFValuesToReportCellValues(attribute.Data.RecordedValues(timeRange, AFBoundaryType.Interpolated, null, null, true).Where(v => v.IsGood), attribute.Name);
                 }
 
@@ -147,6 +159,7 @@ namespace ExcelReportGenerator
 
             }
 
+            // save the excel file to the specified location
             wb.SaveAs(outputFileLocation);
             lblExcelCompleted.Visible = true;
         }
@@ -168,6 +181,7 @@ namespace ExcelReportGenerator
                 ws.Cell(1, cellCounter).Value = name;
                 ws.Cell(1, cellCounter + 1).Value = String.Format("{0} Timestamps", name);
 
+                // write the cell data based on the different values
                 foreach(ReportCellValue celldata in values[name])
                 {
                     ws.Cell(rowCounter, 1).Value = elementName;
@@ -177,6 +191,7 @@ namespace ExcelReportGenerator
                     rowCounter++;
                 }
 
+                // update row offset and cell counter to write data to the correct row and cell
                 cellCounter = cellCounter + 2;
                 rowCounter = 2 + rowOffset;
             }
@@ -191,16 +206,21 @@ namespace ExcelReportGenerator
 
             AFElement element = afTreeView.AFSelection as AFElement;
 
+            // initialize dictionary to capture attribute name and the values for the attribute
             Dictionary<string, List<ReportCellValue>> values = new Dictionary<string, List<ReportCellValue>>();
 
+            // export data from children or single element
             if (cbReportOnChildren.Checked)
             {
+                // loop through children elements
                 foreach (AFElement children in element.Elements)
                 {
                     foreach (AFAttribute attribute in children.Attributes)
                     {
+                        // if the attribute is checked and the attribute supports the recorded values data retrieval method, get the values
                         if (cbChilrenAttributes.CheckedItems.Contains(attribute.Name) && attribute.SupportedDataMethods.HasFlag(AFDataMethods.RecordedValues))
                         {
+                            // if the dictionary doesn't contain the attribute already, initialize the key value pair, otherwise add to the list
                             if (!values.Keys.Contains(children.Name))
                             {
                                 values[children.Name] = ConvertAFValuesToReportCellValues(attribute.Data.RecordedValues(timeRange, AFBoundaryType.Interpolated, null, null, true).Where(v => v.IsGood), attribute.Name);
@@ -217,6 +237,7 @@ namespace ExcelReportGenerator
             {
                 foreach (AFAttribute attribute in cbParentAttributes.CheckedItems)
                 {
+                    // if the dictionary doesn't contain the attribute already, initialize the key value pair, otherwise add to the list
                     if (!values.Keys.Contains(element.Name))
                     {
                         values[element.Name] = ConvertAFValuesToReportCellValues(attribute.Data.RecordedValues(timeRange, AFBoundaryType.Interpolated, null, null, true).Where(v => v.IsGood), attribute.Name);
@@ -228,6 +249,7 @@ namespace ExcelReportGenerator
                 }
             }
 
+            // display the json data in the text area
             txtJsonData.Text = JsonConvert.SerializeObject(values);
         }
 
@@ -243,6 +265,7 @@ namespace ExcelReportGenerator
         {
             List<ReportCellValue> cells = new List<ReportCellValue>();
             
+            // loop through values and create a new ReportCellValue based on the AFValues
             foreach(AFValue value in values)
             {
                 cells.Add(new ReportCellValue()
